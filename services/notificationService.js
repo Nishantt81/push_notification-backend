@@ -4,7 +4,7 @@ const { GoogleAuth } = require('google-auth-library');
 const fetch = require('node-fetch');
 const path = require('path');
 
-const serviceAccountPath = path.join(__dirname, '../serviceAccountKey.json');
+// const serviceAccountPath = path.join(__dirname, '../serviceAccountKey.json');
 
 // Google Cloud project ID (from Firebase project settings)
 const PROJECT_ID = "test-flutter-app-532e5";
@@ -16,14 +16,22 @@ const FCM_ENDPOINT = `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messa
  * Generates an access token using the service account JSON
  */
 async function getAccessToken() {
-  const auth = new GoogleAuth({
-    keyFile: serviceAccountPath,
-    scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
-  });
+  try {
+    // Parse the JSON string stored in the environment variable
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
-  const client = await auth.getClient();
-  const accessTokenResponse = await client.getAccessToken();
-  return accessTokenResponse.token;
+    const auth = new GoogleAuth({
+      credentials: serviceAccount,
+      scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+    });
+
+    const client = await auth.getClient();
+    const accessTokenResponse = await client.getAccessToken();
+    return accessTokenResponse.token;
+  } catch (error) {
+    console.error('Error getting access token:', error.message);
+    throw error;
+  }
 }
 
 
