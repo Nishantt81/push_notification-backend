@@ -20,6 +20,9 @@ async function getAccessToken() {
     // Parse the JSON string stored in the environment variable
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
+    // Fix the private key by replacing literal \n with actual newlines
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+
     const auth = new GoogleAuth({
       credentials: serviceAccount,
       scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
@@ -27,6 +30,7 @@ async function getAccessToken() {
 
     const client = await auth.getClient();
     const accessTokenResponse = await client.getAccessToken();
+
     return accessTokenResponse.token;
   } catch (error) {
     console.error('Error getting access token:', error.message);
