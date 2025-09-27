@@ -17,11 +17,12 @@ const FCM_ENDPOINT = `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messa
  */
 async function getAccessToken() {
   try {
-    // Parse the JSON string stored in the environment variable
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
-    // Fix the private key by replacing literal \n with actual newlines
-    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    // Replace escaped \n with real newlines
+    if (serviceAccount.private_key.includes('\\n')) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
 
     const auth = new GoogleAuth({
       credentials: serviceAccount,
@@ -30,7 +31,6 @@ async function getAccessToken() {
 
     const client = await auth.getClient();
     const accessTokenResponse = await client.getAccessToken();
-
     return accessTokenResponse.token;
   } catch (error) {
     console.error('Error getting access token:', error.message);
@@ -75,4 +75,4 @@ async function sendNotification(fcmToken, title, body) {
   }
 }
 
-module.exports = { sendNotification };
+module.exports = { sendNotification, getAccessToken  };
