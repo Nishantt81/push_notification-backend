@@ -74,14 +74,16 @@ async function sendNotificationToUser(userId, title, body) {
   return sendResults;
 }
 
-// Search usernames for autocomplete
-function searchUsers(query) {
-  const lowerQuery = query.toLowerCase();
-  const matchedUsernames = Object.keys(usernameToUserId).filter(username =>
-    username.toLowerCase().startsWith(lowerQuery)
-  );
-  return matchedUsernames;
+async function searchUsers(query) {
+  if (!query) return [];
+
+  const users = await User.find({
+    username: { $regex: `^${query}`, $options: 'i' },
+  }).limit(10).select('username');
+
+  return users.map(user => user.username);
 }
+
 
 // Get userId by username
 function getUserIdByUsername(username) {
