@@ -1,5 +1,6 @@
 const { GoogleAuth } = require('google-auth-library');
 const fetch = require('node-fetch');
+const User = require('../models/User')
 
 // Use environment variable for service account JSON
 const serviceAccount = process.env.SERVICE_ACCOUNT_KEY
@@ -32,29 +33,45 @@ function saveUserToken(userId, username, fcmToken) {
 
 // Send notification to a specific userId
 async function sendNotificationToUser(userId, title, body) {
-  const fcmToken = userTokens[userId];
-  if (!fcmToken) throw new Error(`No FCM token found for user ${userId}`);
+  // Fetch user directly from DB
+  const user = await User.findById(userId).select('fcmTokens username');
 
+  if (!user || !user.fcmTokens || user.fcmTokens.length === 0) {
+    throw new Error(`No FCM tokens found for user ${userId}`);
+  }
+
+  // Fetch access token
   const accessToken = await getAccessToken();
-  const message = {
-    message: {
-      token: fcmToken,
-      notification: { title, body },
-    },
-  };
 
-  const response = await fetch(FCM_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(message),
-  });
+  const sendResults = [];
+  for (const token of user.fcmTokens) {
+    const message = {
+      message: {
+        token: token,
+        notification: { title, body },
+      },
+    };
 
-  const data = await response.json();
-  console.log(`Notification sent to user ${userId}:`, data);
-  return data;
+    try {
+      const response = await fetch(FCM_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(message),
+      });
+
+      const data = await response.json();
+      console.log(`Notification sent to ${user.username} (${userId}):`, data);
+      sendResults.push({ token, status: 'sent', data });
+    } catch (err) {
+      console.error(`Failed to send notification to token: ${token}`, err);
+      sendResults.push({ token, status: 'failed', error: err.message });
+    }
+  }
+
+  return sendResults;
 }
 
 // Search usernames for autocomplete
@@ -76,4 +93,5 @@ module.exports = {
   sendNotificationToUser,
   searchUsers,
   getUserIdByUsername,
+  getAccessToken
 };
