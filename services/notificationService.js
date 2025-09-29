@@ -1,11 +1,11 @@
-// services/notificationService.js
 const { GoogleAuth } = require('google-auth-library');
 const fetch = require('node-fetch');
-const path = require('path');
-const fs = require('fs');
 
-// Path to Render Secret File
-const serviceAccountPath = '/etc/secrets/serviceAccountKey.json';
+// Use environment variable for service account JSON
+// Fallback for local development (optional)
+const serviceAccount = process.env.SERVICE_ACCOUNT_KEY
+  ? JSON.parse(process.env.SERVICE_ACCOUNT_KEY)
+  : require('../etc/secrets/serviceAccountKey.json'); // only for local dev
 
 // Google Cloud project ID (from Firebase project settings)
 const PROJECT_ID = "test-flutter-app-532e5";
@@ -18,9 +18,6 @@ const FCM_ENDPOINT = `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messa
  */
 async function getAccessToken() {
   try {
-    // Read the service account JSON directly from the secret file
-    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-
     const auth = new GoogleAuth({
       credentials: serviceAccount,
       scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
@@ -45,10 +42,7 @@ async function sendNotification(fcmToken, title, body) {
     const message = {
       message: {
         token: fcmToken,
-        notification: {
-          title,
-          body,
-        },
+        notification: { title, body },
       },
     };
 
@@ -63,7 +57,6 @@ async function sendNotification(fcmToken, title, body) {
 
     const data = await response.json();
     console.log('FCM response:', data);
-
     return data;
   } catch (error) {
     console.error('Error sending FCM notification:', error);
