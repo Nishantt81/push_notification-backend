@@ -140,4 +140,6 @@ vite.config.ts.timestamp-*
 
 .env
 
-etc/secrets/serviceAccountKey.json"etc/secrets/serviceAccountKey.json" 
+etc/secrets/serviceAccountKey.json
+
+etc
